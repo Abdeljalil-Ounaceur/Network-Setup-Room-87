@@ -422,15 +422,12 @@ Apply ACL:
 ldapmodify -Y EXTERNAL -H ldapi:/// -f ACL.ldif
 ```
 
-Test changes:
+### Test to Check User Restrictions
+To verify that users can see their own data:
 ```bash
 ldapsearch -x -D "uid=john_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -b "uid=john_doe,ou=Users,dc=groupe1,dc
+```
 
-# LDAP, Postfix, and Dovecot Configuration Guide
-
-## LDAP Security Configuration
-
-### Check User Restrictions
 To verify that users cannot see other users' data (should display '32 No such Object'):
 ```bash
 ldapsearch -x -D "uid=john_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -b "uid=jane_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma"
