@@ -1,4 +1,5 @@
-Using XUbuntu_24 LTS
+# Network-Setup-Salle-87
+_Using XUbuntu_24 LTS_
 
 # Project GOAL: Installing Various Network Services for Mini Enterprise
 Including DNS, AUTHENTICATION, MAIL, WEB, SHARED STORAGE and SECURITY
