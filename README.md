@@ -1,4 +1,4 @@
-# Using XUbuntu_24 LTS
+Using XUbuntu_24 LTS
 
 # Project GOAL: Installing Various Network Services for Mini Enterprise
 Including DNS, AUTHENTICATION, MAIL, WEB, SHARED STORAGE and SECURITY
