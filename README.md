@@ -3,7 +3,7 @@ _Using XUbuntu_24 LTS_
 _used subnet 192.168.1.0/24 (change to your case, example 10.2.0.0/16)_
 _used the 'Wired connection 1' interface but you can chose whatever network name is available to you_
 
-# Project GOAL: Installing Various Network Services for Mini Enterprise
+# Project GOAL: Installing Various Network Services for Room 87
 Including DNS, AUTHENTICATION, MAIL, WEB, SHARED STORAGE and SECURITY
 
 ## 1. Configuring a Static IP Address
