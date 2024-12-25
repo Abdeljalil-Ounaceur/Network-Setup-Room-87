@@ -490,7 +490,7 @@ TLS_CACERT /etc/ldap/tls/CA.pem
 
 Test TLS connection:
 ```bash
-ldapsearch -LLL -x -H ldap://ldap.example.com -b dc=ldap,dc=example,dc=com -ZZ
+ldapsearch -LLL -x -H ldap://ldap.groupe1.master2.fsa.ma -b dc=groupe1,dc=master2,dc=fsa,dc=ma -ZZ
 ```
 
 ## Postfix Configuration
@@ -818,3 +818,222 @@ broken_sasl_auth_clients = yes
 ```
 openssl s_client -starttls smtp -connect mail.groupe1.master2.fsa.ma:25
 ```
+# Samba LDAP Integration Guide
+
+## Install the Software
+
+There are two packages needed when integrating Samba with LDAP: `samba` and `smbldap-tools`.
+
+Strictly speaking, the `smbldap-tools` package isn’t needed, but unless you have some other way to manage the various Samba entities (users, groups, computers) in an LDAP context, install it:
+
+```bash
+sudo apt install samba smbldap-tools
+```
+
+## Configure LDAP
+
+### Tasks
+
+1. Import a schema
+2. Index some entries
+3. Add objects
+
+### Samba Schema
+
+In order for OpenLDAP to be used as a backend for Samba, the DIT needs attributes that can describe Samba data. Introduce a Samba LDAP schema:
+
+```bash
+sudo ldapadd -Q -Y EXTERNAL -H ldapi:/// -f /usr/share/doc/samba/examples/LDAP/samba.ldif
+```
+
+To query and view this new schema:
+
+```bash
+sudo ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=schema,cn=config 'cn=*samba*'
+```
+
+### Samba Indices
+
+Set up some indices to improve performance during filtered searches on the DIT. Create the file `samba_indices.ldif` with the following content:
+
+```ldif
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcDbIndex
+olcDbIndex: objectClass eq
+olcDbIndex: uidNumber,gidNumber eq
+olcDbIndex: loginShell eq
+olcDbIndex: uid,cn eq,sub
+olcDbIndex: memberUid eq,sub
+olcDbIndex: member,uniqueMember eq
+olcDbIndex: sambaSID eq
+olcDbIndex: sambaPrimaryGroupSID eq
+olcDbIndex: sambaGroupType eq
+olcDbIndex: sambaSIDList eq
+olcDbIndex: sambaDomainName eq
+olcDbIndex: default sub,eq
+```
+
+Load the new indices using `ldapmodify`:
+
+```bash
+sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f samba_indices.ldif
+```
+
+Verify the new indices:
+
+```bash
+sudo ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=config olcDatabase={1}mdb olcDbIndex
+```
+
+### Adding Samba LDAP Objects
+
+Configure the `smbldap-tools` package to match your environment. First, decide on two settings in `/etc/samba/smb.conf`:
+
+- **netbios name**: Server's name (default is derived from the hostname, truncated at 15 characters).
+- **workgroup**: Workgroup name for the server or domain.
+
+Generate the configuration:
+
+```bash
+sudo smbldap-config
+```
+
+Key settings:
+
+- **workgroup name**: Must match `/etc/samba/smb.conf`.
+- **ldap suffix**: Matches the LDAP suffix from LDAP server configuration.
+- **other ldap suffixes**: For example, `ou=Users` for users and `ou=Computers` for machines.
+- **ldap master bind dn and bind password**: Use Root DN credentials.
+
+Run the population script:
+
+```bash
+sudo smbldap-populate -g 10000 -u 10000 -r 10000
+```
+
+To generate a LDIF file:
+
+```bash
+sudo smbldap-populate -e samba.ldif
+```
+
+Verify and rerun without the `-e` switch if everything is correct.
+
+## Samba Configuration
+
+Edit `/etc/samba/smb.conf` to configure Samba to use LDAP. Comment out the default `passdb backend` parameter and add the following:
+
+```ini
+# passdb backend = tdbsam
+
+workgroup = groupe1.master2.fsa.ma
+
+# LDAP Settings
+
+passdb backend = ldapsam:ldap://ldap.groupe1.master2.fsa.ma
+ldap suffix = dc=groupe1,dc=master2,dc=fsa,dc=ma
+ldap user suffix = ou=Users
+ldap group suffix = ou=Groups
+ldap machine suffix = ou=Computers
+ldap idmap suffix = ou=Idmap
+ldap admin dn = cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma
+ldap ssl = start_tls
+ldap passwd sync = yes
+```
+
+Inform Samba about the Root DN user’s password:
+
+```bash
+sudo smbpasswd -W
+```
+
+### Using SSSD
+
+Install and configure `sssd-ldap` to ensure LDAP users appear as Unix users:
+
+```bash
+sudo apt install sssd-ldap
+```
+
+Edit `/etc/sssd/sssd.conf`:
+
+```ini
+[sssd]
+config_file_version = 2
+domains = groupe1.master2.fsa.ma
+
+[domain/groupe1.master2.fsa.ma]
+id_provider = ldap
+auth_provider = ldap
+ldap_uri = ldap://ldap.groupe1.master2.fsa.ma
+cache_credentials = True
+ldap_search_base = dc=groupe1,dc=master2,dc=fsa,dc=ma
+```
+
+Adjust permissions and start the service:
+
+```bash
+sudo chmod 0600 /etc/sssd/sssd.conf
+sudo chown root:root /etc/sssd/sssd.conf
+sudo systemctl start sssd
+```
+
+Restart Samba services:
+
+```bash
+sudo systemctl restart smbd.service nmbd.service
+```
+
+Test the setup:
+
+```bash
+getent group Replicators
+```
+
+### Managing Existing LDAP Users
+
+Add Samba attributes to existing LDAP users:
+
+```bash
+sudo smbpasswd -a username
+```
+
+### Managing Accounts with smbldap-tools
+
+- Add a new user:
+
+  ```bash
+  sudo smbldap-useradd -a -P -m username
+  ```
+
+- Remove a user:
+
+  ```bash
+  sudo smbldap-userdel username
+  ```
+
+- Add a group:
+
+  ```bash
+  sudo smbldap-groupadd -a groupname
+  ```
+
+- Add a user to a group:
+
+  ```bash
+  sudo smbldap-groupmod -m username groupname
+  ```
+
+- Remove a user from a group:
+
+  ```bash
+  sudo smbldap-groupmod -x username groupname
+  ```
+
+- Add a Samba machine account:
+
+  ```bash
+  sudo smbldap-useradd -t 0 -w machinename
+  ```
+
