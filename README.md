@@ -6,7 +6,17 @@ _used the 'Wired connection 1' interface but you can chose whatever network name
 # Project GOAL: Installing Various Network Services for Room 87
 Including DNS, AUTHENTICATION, MAIL, WEB, SHARED STORAGE and SECURITY
 
-## 1. Configuring a Static IP Address
+## Table of Contents
+- [Static IP](#static-ip)
+- [DNS](#dns)
+- [LDAP](#ldap)
+- [Postfix](#postfix)
+- [Dovecot](#dovecot)
+- [Samba](#samba)
+- [Webserver](#webserver)
+- [Security](#security)
+
+## Static IP
 
 ### Required Tools: "network-manager"
 ```bash
@@ -27,7 +37,7 @@ ip a
 ping google.com
 ```
 
-## 2. Configuring DNS
+## DNS
 
 ### Required Tools
 ```bash
@@ -130,7 +140,7 @@ dig -x 192.168.1.200
 ping google.com
 ```
 
-## 3. Setup LDAP for User Centralization
+## LDAP
 
 ### Required Tools
 ```bash
@@ -493,7 +503,7 @@ Test TLS connection:
 ldapsearch -LLL -x -H ldap://ldap.groupe1.master2.fsa.ma -b dc=groupe1,dc=master2,dc=fsa,dc=ma -ZZ
 ```
 
-## Postfix Configuration
+## Postfix
 
 ### Installation
 ```bash
@@ -712,7 +722,7 @@ chmod o+w /home/mail
 systemctl reload postfix
 ```
 
-## Dovecot Configuration
+## Dovecot
 
 ### Installation
 ```bash
@@ -818,9 +828,9 @@ broken_sasl_auth_clients = yes
 ```
 openssl s_client -starttls smtp -connect mail.groupe1.master2.fsa.ma:25
 ```
-# Samba LDAP Integration Guide
+## Samba
 
-## Install the Software
+### Install the Software
 
 There are two packages needed when integrating Samba with LDAP: `samba` and `smbldap-tools`.
 
@@ -830,15 +840,15 @@ Strictly speaking, the `smbldap-tools` package isn’t needed, but unless you ha
 sudo apt install samba smbldap-tools
 ```
 
-## Configure LDAP
+### Configure LDAP
 
-### Tasks
+#### Tasks
 
 1. Import a schema
 2. Index some entries
 3. Add objects
 
-### Samba Schema
+#### Samba Schema
 
 In order for OpenLDAP to be used as a backend for Samba, the DIT needs attributes that can describe Samba data. Introduce a Samba LDAP schema:
 
@@ -852,7 +862,7 @@ To query and view this new schema:
 sudo ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=schema,cn=config 'cn=*samba*'
 ```
 
-### Samba Indices
+#### Samba Indices
 
 Set up some indices to improve performance during filtered searches on the DIT. Create the file `samba_indices.ldif` with the following content:
 
@@ -886,7 +896,7 @@ Verify the new indices:
 sudo ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=config olcDatabase={1}mdb olcDbIndex
 ```
 
-### Adding Samba LDAP Objects
+#### Adding Samba LDAP Objects
 
 Configure the `smbldap-tools` package to match your environment. First, decide on two settings in `/etc/samba/smb.conf`:
 
@@ -920,7 +930,7 @@ sudo smbldap-populate -e samba.ldif
 
 Verify and rerun without the `-e` switch if everything is correct.
 
-## Samba Configuration
+### Samba Configuration
 
 Edit `/etc/samba/smb.conf` to configure Samba to use LDAP. Comment out the default `passdb backend` parameter and add the following:
 
@@ -1037,3 +1047,238 @@ sudo smbpasswd -a username
   sudo smbldap-useradd -t 0 -w machinename
   ```
 
+## Webserver
+
+### Required Tools
+```bash
+apt install apache2
+```
+
+### Enable LDAP Authentication
+```bash
+a2enmod authnz_ldap
+systemctl restart apache2
+```
+
+### Configure Virtual Host
+Create `/etc/apache2/sites-available/groupe1.master2.fsa.ma.conf`:
+```
+<VirtualHost *:80>
+    ServerName groupe1.master2.fsa.ma
+    DocumentRoot /var/www/html
+
+    <Directory /var/www/html>
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    # LDAP Authentication Configuration
+    <Location />
+        AuthType Basic
+        AuthName "Restricted Content"
+        AuthBasicProvider ldap
+        AuthLDAPURL ldap://ldap.groupe1.master2.fsa.ma/dc=groupe1,dc=master2,dc=fsa,dc=ma?uid
+        AuthLDAPBindDN "cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma"
+        AuthLDAPBindPassword "toor"
+        Require valid-user
+    </Location>
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+
+### Enable Site and Restart
+```bash
+a2ensite groupe1.master2.fsa.ma.conf
+systemctl restart apache2
+```
+
+### Create Custom Landing Page
+Create `/var/www/html/index.html`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Setup for Room 87</title>
+    <style>
+    header {
+        background: #333;
+        color: #fff;
+        text-align: center;
+        padding: 20px 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 3em;
+        font-weight: bold;
+    }
+
+    section {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    section p {
+        font-size: 1.2em;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    ul li {
+        font-size: 1.1em;
+        margin: 10px 0;
+        padding: 10px;
+        background: #f4f4f9;
+        border-left: 5px solid #84fab0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    footer {
+        text-align: center;
+        padding: 10px;
+        background: #333;
+        color: #fff;
+        font-size: 0.9em;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+    }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome to Room 87 Network</h1>
+    </header>
+    <section>
+        <p>This project involves the configuration and management of essential network services:</p>
+        <ul style="list-style-type: none; padding: 0;">
+            <li>- DNS setup with <strong>Bind9</strong></li>
+            <li>- Centralized authentication using <strong>LDAP</strong></li>
+            <li>- Mail services powered by <strong>Postfix</strong> and <strong>Dovecot</strong></li>
+            <li>- File sharing and domain control via <strong>Samba</strong></li>
+            <li>- A Webserver with authentication to LDAP via <strong>Apache2</strong></li>
+            <li>- Secure and efficient IP filtering with <strong>iptables</strong></li>
+        </ul>
+        <p>This environment ensures secure, efficient, and centralized management for Room 87.</p>
+    </section>
+</body>
+</html>
+```
+
+Access the site at http://groupe1.master2.fsa.ma using LDAP credentials.
+
+## Security
+
+### Required Tools
+```bash
+apt install iptables iptables-persistent
+```
+
+### Configure IP Tables
+
+#### Network Access Control
+Restrict access to local network:
+```bash
+iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
+iptables -A INPUT -j DROP
+```
+
+#### Service-Specific Rules
+Allow essential services:
+```bash
+# DNS
+iptables -A INPUT -p tcp --dport 53 -j ACCEPT
+
+# LDAP
+iptables -A INPUT -p tcp --dport 389 -j ACCEPT
+iptables -A INPUT -p tcp --dport 636 -j ACCEPT
+
+# Apache
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+
+# Postfix
+iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+iptables -A INPUT -p tcp --dport 465 -j ACCEPT
+iptables -A INPUT -p tcp --dport 587 -j ACCEPT
+
+# Dovecot
+iptables -A INPUT -p tcp --dport 143 -j ACCEPT
+iptables -A INPUT -p tcp --dport 993 -j ACCEPT
+iptables -A INPUT -p tcp --dport 110 -j ACCEPT
+iptables -A INPUT -p tcp --dport 995 -j ACCEPT
+
+# Samba
+iptables -A INPUT -p tcp --dport 445 -j ACCEPT
+iptables -A INPUT -p tcp --dport 139 -j ACCEPT
+iptables -A INPUT -p tcp --dport 138 -j ACCEPT
+iptables -A INPUT -p tcp --dport 137 -j ACCEPT
+```
+
+#### SSH Access Control
+Restrict SSH access:
+```bash
+iptables -A INPUT -p tcp --dport 22 -s 192.168.1.100 -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j DROP
+```
+
+#### Connection State Management
+```bash
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+```
+
+### Antivirus Configuration
+
+#### Install ClamAV
+```bash
+apt install clamav clamav-daemon
+```
+
+#### Enable Real-time Scanning
+```bash
+systemctl start clamav-daemon
+systemctl enable clamav-daemon
+```
+
+#### Configure Daily Scans
+Create `/etc/cron.daily/clamav-scan`:
+```bash
+#!/bin/bash
+clamscan -r /home/mail --log=/var/log/clamav/daily-scan.log --move=/quarantine
+clamscan -r /srv/samba/shared --log=/var/log/clamav/daily-scan.log --move=/quarantine
+```
+
+Set permissions:
+```bash
+chmod +x /etc/cron.daily/clamav-scan
+```
+
+#### Mail Server Integration
+Install ClamAV Milter:
+```bash
+apt install clamav-milter
+```
+
+Edit `/etc/postfix/main.cf`:
+```
+content_filter = scan:127.0.0.1:10026
+```
+
+Restart Postfix:
+```bash
+systemctl restart postfix
+```
