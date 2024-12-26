@@ -1,7 +1,7 @@
 # Configuration Réseau Salle 87
-_Utilisation de XUbuntu_24 LTS_
-_Sous-réseau 10.2.0.0/16_
-_Utilisé l’interface 'Wired connection 1'_
+_Utilisation de XUbuntu_24 LTS_  
+_Sous-réseau 10.2.0.0/16_  
+_Utilisé l’interface 'Wired connection 1'_  
 
 # Objectif
 Ce document de synthèse présente la configuration complète de plusieurs services réseau pour la salle 87. Dans l’objectif d’offrir un réseau fiable et sécurisé, différentes briques logicielles ont été mises en place pour gérer l’adressage IP, la résolution de noms, l’authentification centralisée, la messagerie, le partage de ressources et la sécurité globale du système.
