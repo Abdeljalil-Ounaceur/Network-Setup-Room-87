@@ -6,25 +6,25 @@ _Utilisé l’interface 'Wired connection 1'_
 # Objectif
 Ce document de synthèse présente la configuration complète de plusieurs services réseau pour la salle 87. Dans l’objectif d’offrir un réseau fiable et sécurisé, différentes briques logicielles ont été mises en place pour gérer l’adressage IP, la résolution de noms, l’authentification centralisée, la messagerie, le partage de ressources et la sécurité globale du système.
 
-1.  Configuration IP Statique
+1.  **Configuration IP Statique**\
 Le choix d’une adresse IP fixe permet de simplifier la gestion et la supervision du serveur. Les outils disponibles permettent de définir l’adresse, la passerelle ainsi que les DNS utilisés.
 
-2.  Service DNS
+2.  **Service DNS**\
 Pour assurer la résolution de noms, nous avons déployé Bind9. Les zones directes et inverses ont été configurées pour traduire efficacement les noms de domaine locaux en adresses IP et inversement. Un système de forwarders permet de déléguer la résolution de noms inconnus à des serveurs DNS publics.
 
-3.  Service LDAP
+3.  **Service LDAP**\
 Un service d’annuaire LDAP est mis en place pour centraliser les identifiants et assurer une gestion unifiée des utilisateurs. L’outil permet d’organiser les comptes, groupes, machines et services au sein d’une hiérarchie logique (ou=Users, ou=Groups…).
 
-4.  Serveurs Mail (Postfix & Dovecot)
+4.  **Serveurs Mail (Postfix & Dovecot)**\
 La configuration mail repose sur Postfix pour l’envoi et la distribution, complété par Dovecot pour la réception et l’authentification IMAP/POP3. L’authentification LDAP permet une cohérence des identifiants au sein du réseau. Le chiffrement TLS est activé pour sécuriser la transmission.
 
-5.  Partage & Domaine (Samba)
+5.  **Partage & Domaine (Samba)**\
 Le partage de fichiers et la gestion de domaine sous Samba ont été activés afin de proposer notamment des répertoires partagés aux utilisateurs, tout en conciliant la base d’authentification centralisée hébergée sur LDAP.
 
-6.  Serveur Web
+6.  **Serveur Web**\
 Un serveur Apache2 fournit un accès web, éventuellement protégé par une authentification LDAP. Cela permet un portail unique où les utilisateurs du réseau peuvent s’identifier et accéder à des ressources internes.
 
-7.  Sécurité Générale
+7.  **Sécurité Générale**\
 Des règles de pare-feu via iptables limitent l’accès au réseau. Par défaut, seuls les ports indispensables (53, 389, 80, 25, etc.) sont autorisés, et les communications SSH sont restreintes à des adresses approuvées. L’antivirus ClamAV assure la protection contre les malwares, notamment en scannant les fichiers reçus par mail ou présents dans les répertoires partagés.
 
 ## Table des Matières
