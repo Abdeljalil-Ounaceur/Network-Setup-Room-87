@@ -36,6 +36,7 @@ Des règles de pare-feu via iptables limitent l’accès au réseau. Par défaut
 - [Samba](#samba)
 - [Serveur Web](#serveur-web)
 - [Sécurité](#sécurité)
+- [Conclusion](#conclusion)
 
 ## IP Statique
 
@@ -45,7 +46,7 @@ apt install network-manager
 ```
 
 ### Afficher les Connexions et Modifier
-Show connections and modify the one that you are connected to (or just 'modify Wired connection 1' if you are connected by a cable)
+Afficher les connexions et modifier celle à laquelle vous êtes connecté (ou simplement 'modify Wired connection 1' si vous êtes connecté par câble).
 ```bash
 nmcli conn show
 nmcli conn mod 'Wired connection 1' ipv4.method manual ipv4.addresses "10.2.200.200/16" ipv4.gateway "10.2.0.1" ipv4.dns "8.8.8.8,8.8.4.4" 
@@ -57,22 +58,21 @@ nmcli conn up 'Wired connection 1'
 ip a
 ping google.com
 ```
-
 ## DNS
 
 ### Outils Requis
 ```bash
 apt install bind9
-apt install dnsutils  # recommended
+apt install dnsutils  # recommandé
 ```
 
 ### Configurer named.conf.options
-Edit `named.conf.options`:
+Éditez `named.conf.options` :
 ```bash
 nano named.conf.options
 ```
 
-Uncomment forwarders and add:
+Décommentez les forwarders et ajoutez :
 ```
 forwarders {
     8.8.8.8;
@@ -86,12 +86,12 @@ cd /etc/bind
 cp db.local db.groupe1.master2.fsa.ma.zone
 ```
 
-Edit the zone file:
+Éditez le fichier de zone :
 ```bash
 nano db.groupe1.master2.fsa.ma.zone
 ```
 
-Change any appearance of 'localhost' to 'groupe1.master2.fsa.ma' and change 127.0.0.1 to your static IP address:
+Remplacez toute occurrence de 'localhost' par 'groupe1.master2.fsa.ma' et remplacez 127.0.0.1 par votre adresse IP statique :
 ```
 ;
 ; BIND data file for local loopback interface
@@ -115,7 +115,7 @@ cp db.127 db.10
 nano db.10
 ```
 
-Modify it to:
+Modifiez le fichier comme suit :
 ```
 ;
 ; BIND reverse data file for local 10.2.XXX.XXX interface
@@ -133,7 +133,7 @@ $TTL    604800
 ```
 
 ### Modifier named.conf.local
-Add:
+Ajoutez :
 ```
 zone "groupe1.master2.fsa.ma" {
         type master;
@@ -160,48 +160,47 @@ nslookup groupe1.master2.fsa.ma localhost
 dig -x 10.2.200.200
 ping google.com
 ```
-
 ## LDAP
 
 ### Outils Requis
 ```bash
 apt install slapd ldap-utils
 ```
-When prompted to enter a password, just press enter.
+Lorsque vous êtes invité à saisir un mot de passe, appuyez simplement sur Entrée.
 
 ### Reconfigurer LDAP
 ```bash
 dpkg-reconfigure slapd
 ```
 
-Enter in order:
-- No
+Entrez dans l'ordre:
+- Non
 - groupe1.master2.fsa.ma
 - Groupe1 Master2 FSA
 - some_password
-- some_password (again)
-- yes
-- yes
+- some_password (à nouveau)
+- oui
+- oui
 
 ### Configurer LDAP
-Edit `/etc/ldap/ldap.conf`:
+Modifier `/etc/ldap/ldap.conf`:
 ```bash
 nano /etc/ldap/ldap.conf
 ```
 
-Uncomment and edit BASE and URI:
+Décommenter et modifier BASE et URI:
 ```
 BASE    dc=groupe1,dc=master2,dc=fsa,dc=ma
 URI     ldap://ldap.groupe1.master2.fsa.ma
 ```
 
 ### Ajouter des Entrées DNS
-Add to `/etc/bind/db.groupe1.master2.fsa.ma.zone`:
+Ajouter à `/etc/bind/db.groupe1.master2.fsa.ma.zone`:
 ```
 ldap    IN      A       10.2.200.200
 ```
 
-Add to `/etc/bind/db.10`:
+Ajouter à `/etc/bind/db.10`:
 ```
 200.200     IN      PTR     ldap.groupe1.master2.fsa.ma.
 ```
@@ -241,7 +240,7 @@ dc=groupe1,dc=master2,dc=fsa,dc=ma
 ```
 
 ### Créer le Fichier de Base LDIF
-Create `base_tree.ldif`:
+Créer `base_tree.ldif`:
 ```ldif
 dn: ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma
 objectClass: organizationalUnit
@@ -276,13 +275,13 @@ objectClass: organizationalUnit
 ou: Publications
 ```
 
-Add to database:
+Ajouter à la base de données:
 ```bash
 ldapadd -x -D "cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -f base_tree.ldif
 ```
 
 ### Ajouter des Utilisateurs
-Create `add_users.ldif`:
+Créer `add_users.ldif`:
 ```ldif
 dn: uid=john_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma
 objectClass: inetOrgPerson
@@ -327,7 +326,7 @@ userPassword: {SSHA}U2HQDMA9QTCb5CA5z3F846ZnSy0EXtJN
 ```
 
 ### Ajouter des Groupes
-Create `add_groups.ldif`:
+Créer `add_groups.ldif`:
 ```ldif
 dn: cn=Students,ou=Groups,dc=groupe1,dc=master2,dc=fsa,dc=ma
 objectClass: posixGroup
@@ -344,7 +343,7 @@ memberUid: admin1
 ```
 
 ### Ajouter des Services
-Create `add_services.ldif`:
+Créer `add_services.ldif`:
 ```ldif
 dn: cn=Mail,ou=Services,dc=groupe1,dc=master2,dc=fsa,dc=ma
 objectClass: organizationalRole
@@ -363,6 +362,7 @@ description: File Sharing Service
 ```
 
 ### Ajouter les Données à la Base
+Ajouter à la base de données:
 ```bash
 ldapadd -x -D "cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -f add_users.ldif
 ldapadd -x -D "cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -f add_groups.ldif
@@ -374,7 +374,7 @@ ldapadd -x -D "cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -f add_services.l
 apt install ldapscripts
 ```
 
-Edit `/etc/ldapscripts/ldapscripts.conf`:
+Modifier `/etc/ldapscripts/ldapscripts.conf`:
 ```
 SERVER="ldap://ldap.groupe1.master2.fsa.ma"
 
@@ -391,19 +391,19 @@ UIDSTART="10000"
 MIDSTART="30000"
 ```
 
-Store password:
+Enregistrer le mot de passe:
 ```bash
 echo -n 'password' | sudo tee /etc/ldapscripts/ldapscripts.passwd
 chmod 400 /etc/ldapscripts/ldapscripts.passwd
 ```
 
 ### Créer un Modèle d’Utilisateur
-Edit `/etc/ldapscripts/ldapscripts.conf`:
+Modifier `/etc/ldapscripts/ldapscripts.conf`:
 ```
 UTEMPLATE="/etc/ldapscripts/ldapadduser.template"
 ```
 
-Create `/etc/ldapscripts/ldapadduser.template`:
+Créer `/etc/ldapscripts/ldapadduser.template`:
 ```ldif
 dn: uid=<user>,<usuffix>,<suffix>
 objectClass: account
@@ -423,7 +423,7 @@ description: User account
 ```
 
 ### Configurer la Liste de Contrôle d’Accès
-Create `ACL.ldif`:
+Créer `ACL.ldif`:
 ```ldif
 changetype: modify
 replace: olcAccess
@@ -451,24 +451,24 @@ olcAccess: to *
   by * read
 ```
 
-Apply ACL:
+Appliquer l’ACL:
 ```bash
 ldapmodify -Y EXTERNAL -H ldapi:/// -f ACL.ldif
 ```
 
 ### Tester les Restrictions Utilisateur
-To verify that users can see their own data:
+Pour vérifier que les utilisateurs peuvent voir leurs propres données:
 ```bash
 ldapsearch -x -D "uid=john_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -b "uid=john_doe,ou=Users,dc=groupe1,dc
 ```
 
-To verify that users cannot see other users' data (should display '32 No such Object'):
+Pour vérifier que les utilisateurs ne peuvent pas voir les données des autres utilisateurs (devrait afficher '32 No such Object'):
 ```bash
 ldapsearch -x -D "uid=john_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W -b "uid=jane_doe,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma"
 ```
 
 ### Vérifier l’Accès Utilisateur Anonyme
-To verify anonymous users can only see general data but not sensitive data:
+Pour vérifier que les utilisateurs anonymes ne peuvent voir que les données générales et non les données sensibles:
 ```bash
 ldapmodify -x -D "uid=admin,ou=Users,dc=groupe1,dc=master2,dc=fsa,dc=ma" -W
 ```
@@ -495,7 +495,7 @@ chmod 404 /etc/ldap/tls/CA.pem
 ```
 
 #### Activer la Configuration TLS
-Create file `TLS_enable.ldif`:
+Créer `TLS_enable.ldif`:
 ```ldif
 dn: cn=config
 changetype: modify
@@ -509,17 +509,18 @@ add: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: /etc/ldap/tls/device.key
 ```
 
-Activate TLS:
+Activer TLS:
 ```bash
 ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f TLS_enable.ldif
 ```
 
-Edit `/etc/ldap/ldap.conf`:
+Modifier `/etc/ldap/ldap.conf`:
 ```
 TLS_CACERT /etc/ldap/tls/CA.pem
 ```
 
 ### Tester la Connexion TLS
+Pour tester la connexion TLS:
 ```bash
 ldapsearch -LLL -x -H ldap://ldap.groupe1.master2.fsa.ma -b dc=groupe1,dc=master2,dc=fsa,dc=ma -ZZ
 ```
@@ -532,23 +533,23 @@ apt install postfix postfix-ldap
 apt install mailutils
 ```
 
-When prompted:
-- Select "Internet site" as initial type of configuration
-- Enter mail.groupe1.master2.fsa.ma as your mail host
+Lorsque vous y êtes invité :
+- Sélectionnez "Internet site" comme type initial de configuration
+- Entrez mail.groupe1.master2.fsa.ma comme votre hôte de messagerie
 
 ### Configuration DNS
-Add to `/etc/bind/db.groupe1/master2.fsa.ma.zone`:
+Ajouter à `/etc/bind/db.groupe1/master2.fsa.ma.zone` :
 ```
 mail    IN    A    10.2.200.200
 @       IN    MX   10 mail.groupe1.master2.fsa.ma.
 ```
 
-Add to `/etc/bind/db.10`:
+Ajouter à `/etc/bind/db.10` :
 ```
 200.200    IN    PTR    mail.groupe1.master2.fsa.ma.
 ```
 
-Restart BIND:
+Redémarrer BIND :
 ```bash
 systemctl restart bind9
 ```
@@ -568,7 +569,7 @@ ldappasswd john_doe
 
 ### Fichiers de Configuration Postfix LDAP
 
-Create file `virtual_alias_domains`:
+Créer le fichier `virtual_alias_domains` :
 ```
 server_host = ldap://ldap.groupe1.master2.fsa.ma
 start_tls = yes
@@ -588,7 +589,7 @@ result_attribute = mailacceptinggeneralid
 result_format = %d
 ```
 
-Create file `virtual_alias_maps`:
+Créer le fichier `virtual_alias_maps` :
 ```
 server_host = ldap://ldap.groupe1.master2.fsa.ma
 start_tls = yes
@@ -607,7 +608,7 @@ query_filter = mailacceptinggeneralid=%s
 result_attribute = maildrop
 ```
 
-Create file `virtual_mailbox_maps`:
+Créer le fichier `virtual_mailbox_maps` :
 ```
 server_host = ldap://ldap.groupe1.master2.fsa.ma
 start_tls = yes
@@ -627,7 +628,7 @@ result_attribute = homeDirectory
 result_format = %s/mailbox/
 ```
 
-Create file `virtual_uid_maps`:
+Créer le fichier `virtual_uid_maps` :
 ```
 server_host = ldap://ldap.groupe1.master2.fsa.ma
 start_tls = yes
@@ -646,7 +647,7 @@ query_filter = maildrop=%s
 result_attribute = uidNumber
 ```
 
-Create file `smtpd_sender_login_maps`:
+Créer le fichier `smtpd_sender_login_maps` :
 ```
 server_host = ldap://ldap.groupe1.master2.fsa.ma
 start_tls = yes
@@ -691,7 +692,7 @@ touch /var/spool/postfix/etc/ldap/tls/CA.pem
 mount --bind /etc/ldap/tls/CA.pem /var/spool/postfix/etc/ldap/tls/CA.pem
 ```
 
-Create file `/etc/systemd/system/var-spool-postfix-etc-ldap-tls-CA.pem.mount`:
+Créer le fichier `/etc/systemd/system/var-spool-postfix-etc-ldap-tls-CA.pem.mount` :
 ```ini
 [Unit]
 Description=Bind /etc/ldap/tls/CA.pem to /var/spool/postfix/etc/ldap/tls/CA.pem
@@ -707,7 +708,7 @@ Options=bind
 WantedBy=postfix.service
 ```
 
-Enable TLS mount:
+Activer le montage TLS :
 ```bash
 systemctl daemon-reload
 systemctl start var-spool-postfix-etc-ldap-tls-CA.pem.mount
@@ -716,7 +717,7 @@ systemctl enable var-spool-postfix-etc-ldap-tls-CA.pem.mount
 ```
 
 ### Configuration Principale de Postfix
-Edit `/etc/postfix/main.cf`:
+Éditer `/etc/postfix/main.cf` :
 ```
 myhostname = mail.groupe&.master2.fsa.ma
 
@@ -751,12 +752,12 @@ apt install dovecot-core dovecot-imapd dovecot-ldap
 ```
 
 ### Configuration de Base
-Edit `/etc/dovecot/conf.d/10-mail.conf`:
+Éditez `/etc/dovecot/conf.d/10-mail.conf`:
 ```
 maildir:~/mailbox
 ```
 
-Edit `/etc/dovecot/conf.d/10-master.conf`:
+Éditez `/etc/dovecot/conf.d/10-master.conf`:
 ```
 service imap-login {
     inet_listener imap {
@@ -773,13 +774,13 @@ service imap-login {
 ```
 
 ### Configuration d’Authentification
-Edit `/etc/dovecot/conf.d/10-auth.conf`:
+Éditez `/etc/dovecot/conf.d/10-auth.conf`:
 ```
 #!include auth-system.conf.ext
 !include auth-ldap.conf.ext
 ```
 
-Edit `/etc/dovecot/conf.d/auth-ldap.conf.ext`:
+Éditez `/etc/dovecot/conf.d/auth-ldap.conf.ext`:
 ```
 passdb {
         driver = ldap
@@ -791,7 +792,7 @@ userdb {
 }
 ```
 
-Edit `/etc/dovecot/dovecot-ldap.conf.ext`:
+Éditez `/etc/dovecot/dovecot-ldap.conf.ext`:
 ```
 uris = ldap://ldap.groupe1.master2.fsa.ma
 dn = cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma
@@ -810,7 +811,7 @@ user_filter = (&(objectClass=posixAccount)(uid=%u))
 ```
 
 ### Configuration SSL/TLS
-Edit `/etc/dovecot/conf.d/10-auth.conf`:
+Éditez `/etc/dovecot/conf.d/10-auth.conf`:
 ```
 ssl = required
 ssl_cert = </etc/dovecot/tls/server.crt
@@ -823,7 +824,7 @@ verbose_ssl = yes
 ```
 
 ### Configurer la Socket d’Authentification
-Edit `/etc/dovecot/conf.d/10-master.conf`:
+Éditez `/etc/dovecot/conf.d/10-master.conf`:
 ```
 service auth {
     unix_listener /var/spool/postfix/private/auth {
@@ -835,7 +836,7 @@ service auth {
 ```
 
 ### Configurer SASL pour Postfix
-Edit `/etc/postfix/main.cf`:
+Éditez `/etc/postfix/main.cf`:
 ```
 smtpd_sasl_type = dovecot
 smtpd_sasl_path = private/auth
@@ -843,19 +844,18 @@ smtpd_sasl_auth_enable = yes
 broken_sasl_auth_clients = yes
 ```
 
-
-
 ### Tester l’Authentification:
 ```
 openssl s_client -starttls smtp -connect mail.groupe1.master2.fsa.ma:25
 ```
+
 ## Samba
 
 ### Installer le Logiciel
 
-There are two packages needed when integrating Samba with LDAP: `samba` and `smbldap-tools`.
+Il y a deux paquets nécessaires lors de l'intégration de Samba avec LDAP : `samba` et `smbldap-tools`.
 
-Strictly speaking, the `smbldap-tools` package isn’t needed, but unless you have some other way to manage the various Samba entities (users, groups, computers) in an LDAP context, install it:
+Strictement parlant, le paquet `smbldap-tools` n'est pas indispensable, mais à moins que vous n'ayez un autre moyen de gérer les différentes entités Samba (utilisateurs, groupes, ordinateurs) dans un contexte LDAP, installez-le :
 
 ```bash
 sudo apt install samba smbldap-tools
@@ -863,29 +863,29 @@ sudo apt install samba smbldap-tools
 
 ### Configurer LDAP pour Samba
 
-#### Tasks
+#### Tâches
 
-1. Import a schema
-2. Index some entries
-3. Add objects
+1. Importer un schéma
+2. Indexer certaines entrées
+3. Ajouter des objets
 
-#### Samba Schema
+#### Schéma Samba
 
-In order for OpenLDAP to be used as a backend for Samba, the DIT needs attributes that can describe Samba data. Introduce a Samba LDAP schema:
+Afin qu'OpenLDAP puisse être utilisé comme backend pour Samba, le DIT a besoin d'attributs pouvant décrire les données Samba. Introduisez un schéma LDAP Samba :
 
 ```bash
 sudo ldapadd -Q -Y EXTERNAL -H ldapi:/// -f /usr/share/doc/samba/examples/LDAP/samba.ldif
 ```
 
-To query and view this new schema:
+Pour interroger et visualiser ce nouveau schéma :
 
 ```bash
 sudo ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=schema,cn=config 'cn=*samba*'
 ```
 
-#### Samba Indices
+#### Indices Samba
 
-Set up some indices to improve performance during filtered searches on the DIT. Create the file `samba_indices.ldif` with the following content:
+Configurez certains indices pour améliorer les performances lors des recherches filtrées sur le DIT. Créez le fichier `samba_indices.ldif` avec le contenu suivant :
 
 ```ldif
 dn: olcDatabase={1}mdb,cn=config
@@ -905,55 +905,55 @@ olcDbIndex: sambaDomainName eq
 olcDbIndex: default sub,eq
 ```
 
-Load the new indices using `ldapmodify`:
+Chargez les nouveaux index en utilisant `ldapmodify` :
 
 ```bash
 sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f samba_indices.ldif
 ```
 
-Verify the new indices:
+Vérifiez les nouveaux index :
 
 ```bash
 sudo ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=config olcDatabase={1}mdb olcDbIndex
 ```
 
-#### Adding Samba LDAP Objects
+#### Ajout d'objets LDAP Samba
 
-Configure the `smbldap-tools` package to match your environment. First, decide on two settings in `/etc/samba/smb.conf`:
+Configurez le paquet `smbldap-tools` pour correspondre à votre environnement. Tout d'abord, décidez de deux paramètres dans `/etc/samba/smb.conf` :
 
-- **netbios name**: Server's name (default is derived from the hostname, truncated at 15 characters).
-- **workgroup**: Workgroup name for the server or domain.
+- **netbios name**: Nom du serveur (par défaut dérivé du nom d'hôte, tronqué à 15 caractères).
+- **workgroup**: Nom du groupe de travail pour le serveur ou le domaine.
 
-Generate the configuration:
+Générez la configuration :
 
 ```bash
 sudo smbldap-config
 ```
 
-Key settings:
+Paramètres clés :
 
-- **workgroup name**: Must match `/etc/samba/smb.conf`.
-- **ldap suffix**: Matches the LDAP suffix from LDAP server configuration.
-- **other ldap suffixes**: For example, `ou=Users` for users and `ou=Computers` for machines.
-- **ldap master bind dn and bind password**: Use Root DN credentials.
+- **workgroup name**: Doit correspondre à `/etc/samba/smb.conf`.
+- **ldap suffix**: Correspond au suffixe LDAP de la configuration du serveur LDAP.
+- **other ldap suffixes**: Par exemple, `ou=Users` pour les utilisateurs et `ou=Computers` pour les machines.
+- **ldap master bind dn and bind password**: Utilisez les identifiants du Root DN.
 
-Run the population script:
+Exécutez le script de population :
 
 ```bash
 sudo smbldap-populate -g 10000 -u 10000 -r 10000
 ```
 
-To generate a LDIF file:
+Pour générer un fichier LDIF :
 
 ```bash
 sudo smbldap-populate -e samba.ldif
 ```
 
-Verify and rerun without the `-e` switch if everything is correct.
+Vérifiez et relancez sans l’option `-e` si tout est correct.
 
 ### Configuration de Samba
 
-Edit `/etc/samba/smb.conf` to configure Samba to use LDAP. Comment out the default `passdb backend` parameter and add the following:
+Modifiez `/etc/samba/smb.conf` pour configurer Samba à utiliser LDAP. Commentez le paramètre `passdb backend` par défaut et ajoutez ce qui suit :
 
 ```ini
 # passdb backend = tdbsam
@@ -973,7 +973,7 @@ ldap ssl = start_tls
 ldap passwd sync = yes
 ```
 
-Inform Samba about the Root DN user’s password:
+Informez Samba du mot de passe de l'utilisateur Root DN :
 
 ```bash
 sudo smbpasswd -W
@@ -981,13 +981,13 @@ sudo smbpasswd -W
 
 ### Utiliser SSSD
 
-Install and configure `sssd-ldap` to ensure LDAP users appear as Unix users:
+Installez et configurez `sssd-ldap` pour vous assurer que les utilisateurs LDAP apparaissent comme des utilisateurs Unix :
 
 ```bash
 sudo apt install sssd-ldap
 ```
 
-Edit `/etc/sssd/sssd.conf`:
+Modifiez `/etc/sssd/sssd.conf` :
 
 ```ini
 [sssd]
@@ -1002,7 +1002,7 @@ cache_credentials = True
 ldap_search_base = dc=groupe1,dc=master2,dc=fsa,dc=ma
 ```
 
-Adjust permissions and start the service:
+Ajustez les permissions et démarrez le service :
 
 ```bash
 sudo chmod 0600 /etc/sssd/sssd.conf
@@ -1010,13 +1010,13 @@ sudo chown root:root /etc/sssd/sssd.conf
 sudo systemctl start sssd
 ```
 
-Restart Samba services:
+Redémarrez les services Samba :
 
 ```bash
 sudo systemctl restart smbd.service nmbd.service
 ```
 
-Test the setup:
+Testez la configuration :
 
 ```bash
 getent group Replicators
@@ -1024,7 +1024,7 @@ getent group Replicators
 
 ### Gérer les Utilisateurs LDAP Existants
 
-Add Samba attributes to existing LDAP users:
+Ajoutez des attributs Samba aux utilisateurs LDAP existants :
 
 ```bash
 sudo smbpasswd -a username
@@ -1032,37 +1032,37 @@ sudo smbpasswd -a username
 
 ### Gérer les Comptes avec smbldap-tools
 
-- Add a new user:
+- Ajouter un nouvel utilisateur :
 
   ```bash
   sudo smbldap-useradd -a -P -m username
   ```
 
-- Remove a user:
+- Supprimer un utilisateur :
 
   ```bash
   sudo smbldap-userdel username
   ```
 
-- Add a group:
+- Ajouter un groupe :
 
   ```bash
   sudo smbldap-groupadd -a groupname
   ```
 
-- Add a user to a group:
+- Ajouter un utilisateur à un groupe :
 
   ```bash
   sudo smbldap-groupmod -m username groupname
   ```
 
-- Remove a user from a group:
+- Retirer un utilisateur d'un groupe :
 
   ```bash
   sudo smbldap-groupmod -x username groupname
   ```
 
-- Add a Samba machine account:
+- Ajouter un compte machine Samba :
 
   ```bash
   sudo smbldap-useradd -t 0 -w machinename
@@ -1082,7 +1082,7 @@ systemctl restart apache2
 ```
 
 ### Configurer l’Hôte Virtuel
-Create `/etc/apache2/sites-available/groupe1.master2.fsa.ma.conf`:
+Créer `/etc/apache2/sites-available/groupe1.master2.fsa.ma.conf`:
 ```
 <VirtualHost *:80>
     ServerName groupe1.master2.fsa.ma
@@ -1094,10 +1094,10 @@ Create `/etc/apache2/sites-available/groupe1.master2.fsa.ma.conf`:
         Require all granted
     </Directory>
 
-    # LDAP Authentication Configuration
+    # Configuration de l'authentification LDAP
     <Location />
         AuthType Basic
-        AuthName "Restricted Content"
+        AuthName "Contenu Restreint"
         AuthBasicProvider ldap
         AuthLDAPURL ldap://ldap.groupe1.master2.fsa.ma/dc=groupe1,dc=master2,dc=fsa,dc=ma?uid
         AuthLDAPBindDN "cn=admin,dc=groupe1,dc=master2,dc=fsa,dc=ma"
@@ -1117,10 +1117,10 @@ systemctl restart apache2
 ```
 
 ### Créer une Page d’Accueil Personnalisée
-Create `/var/www/html/index.html`:
+Créer `/var/www/html/index.html`:
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1183,25 +1183,25 @@ Create `/var/www/html/index.html`:
 </head>
 <body>
     <header>
-        <h1>Welcome to Room 87 Network</h1>
+        <h1>Bienvenue sur le Réseau de la Salle 87</h1>
     </header>
     <section>
-        <p>This project involves the configuration and management of essential network services:</p>
+        <p>Ce projet consiste en la configuration et la gestion de services réseau essentiels :</p>
         <ul style="list-style-type: none; padding: 0;">
-            <li>- DNS setup with <strong>Bind9</strong></li>
-            <li>- Centralized authentication using <strong>LDAP</strong></li>
-            <li>- Mail services powered by <strong>Postfix</strong> and <strong>Dovecot</strong></li>
-            <li>- File sharing and domain control via <strong>Samba</strong></li>
-            <li>- A Webserver with authentication to LDAP via <strong>Apache2</strong></li>
-            <li>- Secure and efficient IP filtering with <strong>iptables</strong></li>
+            <li>- Configuration DNS avec <strong>Bind9</strong></li>
+            <li>- Authentification centralisée avec <strong>LDAP</strong></li>
+            <li>- Services de courrier électronique gérés par <strong>Postfix</strong> et <strong>Dovecot</strong></li>
+            <li>- Partage de fichiers et contrôle de domaine via <strong>Samba</strong></li>
+            <li>- Un serveur web avec authentification LDAP via <strong>Apache2</strong></li>
+            <li>- Un filtrage IP sécurisé et efficace avec <strong>iptables</strong></li>
         </ul>
-        <p>This environment ensures secure, efficient, and centralized management for Room 87.</p>
+        <p>Cet environnement garantit une gestion sécurisée, efficace et centralisée pour la Salle 87.</p>
     </section>
 </body>
 </html>
 ```
 
-Access the site at http://groupe1.master2.fsa.ma using LDAP credentials.
+Accédez au site sur http://groupe1.master2.fsa.ma en utilisant les identifiants LDAP.
 
 ## Sécurité
 
@@ -1213,14 +1213,14 @@ apt install iptables iptables-persistent
 ### Configurer IP Tables
 
 #### Contrôle d’Accès Réseau
-Restrict access to local network:
+Restreindre l'accès au réseau local:
 ```bash
 iptables -A INPUT -s 10.2.0.0/16 -j ACCEPT
 iptables -A INPUT -j DROP
 ```
 
 #### Règles Spécifiques aux Services
-Allow essential services:
+Autoriser les services essentiels:
 ```bash
 # DNS
 iptables -A INPUT -p tcp --dport 53 -j ACCEPT
@@ -1251,7 +1251,7 @@ iptables -A INPUT -p tcp --dport 137 -j ACCEPT
 ```
 
 #### Contrôle d’Accès SSH
-Restrict SSH access:
+Restreindre l'accès SSH:
 ```bash
 iptables -A INPUT -p tcp --dport 22 -s 10.2.100.100 -j ACCEPT
 iptables -A INPUT -p tcp --dport 22 -j DROP
@@ -1276,30 +1276,34 @@ systemctl enable clamav-daemon
 ```
 
 #### Programmer des Analyses Quotidiennes
-Create `/etc/cron.daily/clamav-scan`:
+Créer `/etc/cron.daily/clamav-scan`:
 ```bash
 #!/bin/bash
 clamscan -r /home/mail --log=/var/log/clamav/daily-scan.log --move=/quarantine
 clamscan -r /srv/samba/shared --log=/var/log/clamav/daily-scan.log --move=/quarantine
 ```
 
-Set permissions:
+Définir les permissions:
 ```bash
 chmod +x /etc/cron.daily/clamav-scan
 ```
 
 #### Intégration au Serveur Mail
-Install ClamAV Milter:
+Installer ClamAV Milter:
 ```bash
 apt install clamav-milter
 ```
 
-Edit `/etc/postfix/main.cf`:
+Modifier `/etc/postfix/main.cf`:
 ```
 content_filter = scan:127.0.0.1:10026
 ```
 
-Restart Postfix:
+Redémarrer Postfix:
 ```bash
 systemctl restart postfix
 ```
+
+## Conclusion
+
+Ce document présente la configuration actuelle des services réseau pour la salle 87. Ce rapport sera amélioré à l'avenir pour inclure des tests de fonctionnalité et ajouter des sections concernant des mesures de sécurité supplémentaires pour le serveur.
